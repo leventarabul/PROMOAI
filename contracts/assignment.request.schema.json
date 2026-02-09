@@ -1,0 +1,12 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "AssignmentRequest",
+    "type": "object",
+    "required": ["user_id", "segment"],
+    "properties": {
+        "user_id": { "type": "string" },
+        "segment": { "type": "string" },
+        "profile": { "type": "object" },
+        "context": { "type": "array", "items": { "type": "string" } }
+    }
+}

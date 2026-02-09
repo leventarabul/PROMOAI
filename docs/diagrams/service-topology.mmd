@@ -1,0 +1,35 @@
+flowchart LR
+  Client[Client / Upstream]
+  EventAPI[Event API]
+  Queue[(Queue)]
+  RuleEngine[Rule Engine]
+  AssignmentSvc[Assignment Service]
+  PromoAI[PromoAI Engine]
+  CampaignSvc[Campaign Service]
+  RewardSvc[Reward Service]
+  NotifySvc[Notification Service]
+  Analytics[Analytics/Logging]
+  DB[(Primary DB)]
+  EventStore[(Event Store)]
+  VectorDB[(Vector DB)]
+
+  Client --> EventAPI --> Queue
+  Queue --> RuleEngine
+  RuleEngine --> AssignmentSvc
+  AssignmentSvc --> PromoAI
+  PromoAI --> VectorDB
+  AssignmentSvc --> CampaignSvc
+  CampaignSvc --> DB
+  AssignmentSvc --> DB
+  RuleEngine --> DB
+  RuleEngine --> EventStore
+  RuleEngine --> RewardSvc
+  RewardSvc --> DB
+  RewardSvc --> NotifySvc
+  NotifySvc --> Client
+
+  EventAPI --> Analytics
+  RuleEngine --> Analytics
+  AssignmentSvc --> Analytics
+  RewardSvc --> Analytics
+  NotifySvc --> Analytics

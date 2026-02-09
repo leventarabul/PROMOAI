@@ -1,0 +1,74 @@
+openapi: 3.0.3
+info:
+  title: PromoAI Event API
+  version: 0.1.0
+servers:
+  - url: http://localhost:3001
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /events:
+    post:
+      summary: Ingest an event
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Event"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    Event:
+      type: object
+      required:
+        - user_id
+        - type
+        - timestamp
+        - transaction_id
+      properties:
+        event_id:
+          type: integer
+          format: int64
+        user_id:
+          type: string
+        type:
+          type: string
+        transaction_id:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        context:
+          type: object
