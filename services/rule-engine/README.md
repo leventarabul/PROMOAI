@@ -1,16 +1,32 @@
 # Rule Engine
 
-Skeleton service. Responsibilities:
-- Consume events from Redis Streams
-- Evaluate eligibility rules
-- Write assignments/rewards/events to DB
+Event eligibility evaluation and campaign matching.
 
-## Step 4 (DB Connection)
+## Endpoints
 
-Endpoints:
-- `GET /health`
-- `GET /db-health`
+- `GET /health` - Health check
+- `GET /db-health` - Database check
+- `POST /events` - Evaluate event eligibility
+- `GET /evaluate/:user_id` - Check user existence
 
-Run:
-- `npm install`
-- `npm run dev`
+## Response Example (POST /events)
+
+```json
+{
+  "status": "evaluated",
+  "event_id": 1,
+  "user_id": "u_001",
+  "eligible_campaigns": [
+    {"campaign_id": "CAMP_001", "matched_rule": "purchase"}
+  ]
+}
+```
+
+## Running
+
+```bash
+npm install
+node src/index.js
+```
+
+Listens on port 8000.

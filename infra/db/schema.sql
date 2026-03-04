@@ -62,3 +62,48 @@ CREATE TABLE api_permissions (
   created_at TIMESTAMP DEFAULT NOW(),
   PRIMARY KEY (client_id, service)
 );
+
+-- pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Campaign embeddings for vector similarity search
+CREATE TABLE campaign_embeddings (
+  campaign_id TEXT PRIMARY KEY REFERENCES campaigns(campaign_id) ON DELETE CASCADE,
+  embedding vector(1536),
+  content TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_campaign_embeddings_vector
+  ON campaign_embeddings USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 10);
+
+-- Notify on campaign changes (INSERT/UPDATE/DELETE)
+CREATE OR REPLACE FUNCTION notify_campaign_change()
+RETURNS TRIGGER AS $$
+DECLARE
+  payload JSON;
+  target_id TEXT;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    target_id := OLD.campaign_id;
+  ELSE
+    target_id := NEW.campaign_id;
+  END IF;
+
+  payload := json_build_object(
+    'op', TG_OP,
+    'campaign_id', target_id,
+    'timestamp', NOW()
+  );
+
+  PERFORM pg_notify('campaign_changes', payload::text);
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_campaign_change ON campaigns;
+CREATE TRIGGER trg_campaign_change
+  AFTER INSERT OR UPDATE OR DELETE ON campaigns
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_campaign_change();

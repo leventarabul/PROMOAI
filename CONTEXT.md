@@ -288,14 +288,18 @@ Response
 
 ## 🧪 MVP Scope
 
-| Module | Description |
-| --- | --- |
-| Campaign Definition | Admin UI to create campaigns |
-| Event API | Collect transaction/behavior events |
-| Rule Engine | Match events to campaigns |
-| Reward Calculation | Compute points/cashback for eligible campaigns |
-| PromoAI Assignment | GPT‑based matching recommendations |
-| Notification Service | Inform users via push/email |
+| Module | Description | Status |
+| --- | --- | --- |
+| Event API | Collect transaction/behavior events | ✅ Complete |
+| Event API - Validation | Validate payloads against schema | ✅ Complete |
+| Event API - Redis Streams | Publish events to Redis | ✅ Complete |
+| Event API - Metrics | Prometheus metrics endpoint | ✅ Complete |
+| Rule Engine | Match events to campaigns | ✅ Complete |
+| Rule Engine - API | POST /events endpoint for eligibility checks | ✅ Complete |
+| Campaign Definition | Admin UI to create campaigns | ⏳ Next |
+| Reward Calculation | Compute points/cashback for eligible campaigns | ⏳ Next |
+| PromoAI Assignment | GPT‑based matching recommendations | ⏳ Next |
+| Notification Service | Inform users via push/email | ⏳ Next |
 
 ---
 

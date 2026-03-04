@@ -6,7 +6,10 @@
     "properties": {
         "event_id": { "type": "integer" },
         "user_id": { "type": "string" },
-        "type": { "type": "string" },
+        "type": {
+            "type": "string",
+            "enum": ["purchase", "view", "add_to_cart", "remove_from_cart", "return", "review", "wishlist", "click"]
+        },
         "transaction_id": { "type": "string" },
         "amount": { "type": "number" },
         "category": { "type": "string" },
