@@ -12,6 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
       - ./infra/db/migrations/006_seasonal_contexts.sql:/docker-entrypoint-initdb.d/006_seasonal_contexts.sql:ro
+      - ./infra/db/migrations/007_auto_trends.sql:/docker-entrypoint-initdb.d/007_auto_trends.sql:ro
 
   redis:
     image: redis:7
@@ -40,6 +41,31 @@ services:
       - "3005:3005"
     depends_on:
       - postgres
+    networks:
+      - promoai-network
+    restart: unless-stopped
+
+  trend-detection-service:
+    build:
+      context: ./services/trend-detection-service
+      dockerfile: Dockerfile
+    container_name: promoai-trend-detection
+    environment:
+      POSTGRES_USER: promoai
+      POSTGRES_PASSWORD: promoai
+      POSTGRES_DB: campaign
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      TREND_DETECTION_PORT: 3006
+      TREND_API_CHOICE: pytrends
+      TREND_DETECTION_COUNTRY: TR
+      CONTEXT_SERVICE_URL: http://context-service:3005
+    ports:
+      - "3006:3006"
+    depends_on:
+      - postgres
+      - context-service
     networks:
       - promoai-network
     restart: unless-stopped

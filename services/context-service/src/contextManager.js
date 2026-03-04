@@ -38,15 +38,15 @@ async function generateContextEmbedding({ pool, contextId, retries = 3 }) {
         `Tags: ${context.tags.join(", ")}`,
     ];
 
-    if (context.metadata ? .boost_categories) {
+    if (context.metadata?.boost_categories) {
         contentParts.push(`Relevant categories: ${context.metadata.boost_categories.join(", ")}`);
     }
 
-    if (context.metadata ? .behavior_patterns) {
+    if (context.metadata?.behavior_patterns) {
         contentParts.push(`Behavior patterns: ${context.metadata.behavior_patterns.join(", ")}`);
     }
 
-    if (context.metadata ? .campaign_themes) {
+    if (context.metadata?.campaign_themes) {
         contentParts.push(`Campaign themes: ${context.metadata.campaign_themes.join(", ")}`);
     }
 
@@ -70,14 +70,20 @@ async function generateContextEmbedding({ pool, contextId, retries = 3 }) {
 
             // Log to database
             await pool.query(
-                `INSERT INTO openai_request_logs (request_id, model, endpoint, request_input, duration_ms, status_code, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, NOW())`, [
+                `INSERT INTO openai_request_logs (
+           request_id, model, endpoint, request_input, response_output, status_code, error_message, duration_ms, created_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`, [
                     `context_emb_${contextId}_${Date.now()}`,
                     "text-embedding-3-small",
                     "/v1/embeddings",
                     content.substring(0, 500),
-                    duration,
+                    JSON.stringify({
+                        embedding_dimensions: embedding.length,
+                        usage: response?.usage || null,
+                    }),
                     200,
+                    null,
+                    duration,
                 ]
             );
 
