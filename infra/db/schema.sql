@@ -107,3 +107,24 @@ CREATE TRIGGER trg_campaign_change
   AFTER INSERT OR UPDATE OR DELETE ON campaigns
   FOR EACH ROW
   EXECUTE FUNCTION notify_campaign_change();
+
+-- OpenAI API Request Logging Table
+CREATE TABLE openai_request_logs (
+  id SERIAL PRIMARY KEY,
+  request_id VARCHAR(255) UNIQUE NOT NULL,
+  model VARCHAR(100) NOT NULL,
+  endpoint VARCHAR(255) NOT NULL,
+  request_input TEXT NOT NULL,
+  request_tokens INT,
+  response_output TEXT,
+  response_tokens INT,
+  status_code INT,
+  error_message TEXT,
+  duration_ms INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_openai_logs_created_at ON openai_request_logs(created_at DESC);
+CREATE INDEX idx_openai_logs_model ON openai_request_logs(model);
+CREATE INDEX idx_openai_logs_endpoint ON openai_request_logs(endpoint);

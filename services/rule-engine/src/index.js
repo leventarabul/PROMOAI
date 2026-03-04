@@ -42,6 +42,24 @@ await redis.connect();
 const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
 const EMBEDDING_MODEL = "text-embedding-ada-002";
 
+/** Log OpenAI request to database */
+async function logOpenAIRequest(requestId, model, endpoint, requestInput, responseOutput, statusCode, errorMessage, durationMs) {
+    try {
+        await pool.query(
+            `INSERT INTO openai_request_logs (request_id, model, endpoint, request_input, response_output, status_code, error_message, duration_ms)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (request_id) DO UPDATE
+               SET response_output = EXCLUDED.response_output,
+                   status_code = EXCLUDED.status_code,
+                   error_message = EXCLUDED.error_message,
+                   duration_ms = EXCLUDED.duration_ms,
+                   updated_at = NOW()`, [requestId, model, endpoint, requestInput, responseOutput, statusCode, errorMessage, durationMs]
+        );
+    } catch (err) {
+        console.error("Failed to log OpenAI request:", err.message);
+    }
+}
+
 const app = express();
 app.use(express.json());
 
@@ -192,6 +210,8 @@ app.post("/campaigns/search", async(req, res) => {
 
     const { query, embedding: providedEmbedding, limit } = req.body;
     const topK = Math.min(limit || 5, 20);
+    const requestId = `search-${Date.now()}`;
+    const startTime = Date.now();
 
     if (!query && !providedEmbedding) {
         return res.status(400).json({ status: "invalid", message: "Provide 'query' (text) or 'embedding' (vector)" });
@@ -209,6 +229,18 @@ app.post("/campaigns/search", async(req, res) => {
                 input: query,
             });
             embeddingVector = embResponse.data[0].embedding;
+
+            const durationMs = Date.now() - startTime;
+            await logOpenAIRequest(
+                requestId,
+                EMBEDDING_MODEL,
+                "/v1/embeddings",
+                query.substring(0, 1000),
+                JSON.stringify({ embedding_size: embeddingVector.length }),
+                200,
+                null,
+                durationMs
+            );
         }
 
         const vectorStr = `[${embeddingVector.join(",")}]`;
@@ -242,6 +274,20 @@ app.post("/campaigns/search", async(req, res) => {
             })),
         });
     } catch (err) {
+        const durationMs = Date.now() - startTime;
+
+        // Log error
+        await logOpenAIRequest(
+            requestId,
+            EMBEDDING_MODEL,
+            "/v1/embeddings",
+            query ? .substring(0, 1000) || "(provided embedding)",
+            null,
+            err.status || 500,
+            err.message,
+            durationMs
+        );
+
         console.error("Campaign search error:", err);
         return res.status(500).json({ status: "error", message: err.message });
     }

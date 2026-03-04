@@ -38,6 +38,24 @@ const pool = new pg.Pool({
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 const EMBEDDING_MODEL = "text-embedding-ada-002";
 
+/** Log OpenAI request to database */
+async function logOpenAIRequest(requestId, model, endpoint, requestInput, responseOutput, statusCode, errorMessage, durationMs) {
+    try {
+        await pool.query(
+            `INSERT INTO openai_request_logs (request_id, model, endpoint, request_input, response_output, status_code, error_message, duration_ms)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (request_id) DO UPDATE
+               SET response_output = EXCLUDED.response_output,
+                   status_code = EXCLUDED.status_code,
+                   error_message = EXCLUDED.error_message,
+                   duration_ms = EXCLUDED.duration_ms,
+                   updated_at = NOW()`, [requestId, model, endpoint, requestInput, responseOutput, statusCode, errorMessage, durationMs]
+        );
+    } catch (err) {
+        console.error("Failed to log OpenAI request:", err.message);
+    }
+}
+
 function buildCampaignText(c) {
     const parts = [
         `Campaign: ${c.name}`,
@@ -49,16 +67,49 @@ function buildCampaignText(c) {
     return parts.filter(Boolean).join(". ");
 }
 
-async function generateEmbedding(text, retries = 3) {
+async function generateEmbedding(text, campaignId, retries = 3) {
+    const requestId = `emb-seed-${campaignId}-${Date.now()}`;
+    const startTime = Date.now();
+
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             const response = await openai.embeddings.create({
                 model: EMBEDDING_MODEL,
                 input: text,
             });
-            return response.data[0].embedding;
+
+            const durationMs = Date.now() - startTime;
+            const embedding = response.data[0].embedding;
+
+            // Log successful request
+            await logOpenAIRequest(
+                requestId,
+                EMBEDDING_MODEL,
+                "/v1/embeddings",
+                text.substring(0, 1000),
+                JSON.stringify({ embedding_size: embedding.length }),
+                200,
+                null,
+                durationMs
+            );
+
+            return embedding;
         } catch (err) {
-            if (attempt === retries) throw err;
+            if (attempt === retries) {
+                const durationMs = Date.now() - startTime;
+                // Log failed request
+                await logOpenAIRequest(
+                    requestId,
+                    EMBEDDING_MODEL,
+                    "/v1/embeddings",
+                    text.substring(0, 1000),
+                    null,
+                    err.status || 500,
+                    err.message,
+                    durationMs
+                );
+                throw err;
+            }
             const delay = Math.pow(2, attempt) * 500;
             console.warn(`Retry ${attempt}/${retries} in ${delay}ms...`, err.message);
             await new Promise((r) => setTimeout(r, delay));
@@ -83,7 +134,7 @@ async function main() {
             const text = buildCampaignText(campaign);
             console.log(`  [${campaign.campaign_id}] "${text}"`);
 
-            const embedding = await generateEmbedding(text);
+            const embedding = await generateEmbedding(text, campaign.campaign_id);
             const vectorStr = `[${embedding.join(",")}]`;
 
             await pool.query(
