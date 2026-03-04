@@ -133,7 +133,7 @@ app.get("/health", async(_req, res) => {
 
 app.post("/assign/run", async(req, res) => {
     try {
-        const customerIds = Array.isArray(req.body?.customer_ids) ? req.body.customer_ids : null;
+        const customerIds = Array.isArray(req.body ? .customer_ids) ? req.body.customer_ids : null;
         const summary = await assignForCustomers(customerIds);
         res.json({ status: "ok", ...summary });
     } catch (err) {

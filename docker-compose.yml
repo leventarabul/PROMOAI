@@ -11,6 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infra/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
+      - ./infra/db/migrations/006_seasonal_contexts.sql:/docker-entrypoint-initdb.d/006_seasonal_contexts.sql:ro
 
   redis:
     image: redis:7
@@ -21,6 +22,32 @@ services:
     volumes:
       - redis_data:/data
 
+  context-service:
+    build:
+      context: ./services/context-service
+      dockerfile: Dockerfile
+    container_name: promoai-context-service
+    environment:
+      POSTGRES_USER: promoai
+      POSTGRES_PASSWORD: promoai
+      POSTGRES_DB: campaign
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CONTEXT_SERVICE_PORT: 3005
+      CONTEXT_SYNC_CRON: "0 1 * * *"
+    ports:
+      - "3005:3005"
+    depends_on:
+      - postgres
+    networks:
+      - promoai-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  promoai-network:
+    driver: bridge

@@ -379,8 +379,7 @@ app.delete("/admin/contexts/:contextId", async(req, res) => {
         const { contextId } = req.params;
 
         const result = await pool.query(
-            `DELETE FROM seasonal_contexts WHERE context_id = $1 RETURNING context_id`,
-            [contextId]
+            `DELETE FROM seasonal_contexts WHERE context_id = $1 RETURNING context_id`, [contextId]
         );
 
         if (result.rows.length === 0) {

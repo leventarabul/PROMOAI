@@ -37,16 +37,16 @@ async function generateContextEmbedding({ pool, contextId, retries = 3 }) {
         `Description: ${context.description}`,
         `Tags: ${context.tags.join(", ")}`,
     ];
-    
-    if (context.metadata?.boost_categories) {
+
+    if (context.metadata ? .boost_categories) {
         contentParts.push(`Relevant categories: ${context.metadata.boost_categories.join(", ")}`);
     }
 
-    if (context.metadata?.behavior_patterns) {
+    if (context.metadata ? .behavior_patterns) {
         contentParts.push(`Behavior patterns: ${context.metadata.behavior_patterns.join(", ")}`);
     }
 
-    if (context.metadata?.campaign_themes) {
+    if (context.metadata ? .campaign_themes) {
         contentParts.push(`Campaign themes: ${context.metadata.campaign_themes.join(", ")}`);
     }
 

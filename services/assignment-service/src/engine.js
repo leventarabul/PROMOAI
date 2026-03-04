@@ -209,7 +209,7 @@ function buildSelectionPrompt(customer, campaigns, limit, activeContexts = []) {
         `Return at most ${limit} assignments.`,
         "Reasons must be short (max 140 chars).",
     ];
-    
+
     // Add active contexts if available
     if (activeContexts && activeContexts.length > 0) {
         parts.push("");
@@ -217,23 +217,23 @@ function buildSelectionPrompt(customer, campaigns, limit, activeContexts = []) {
         parts.push("Consider these active contexts when selecting campaigns:");
         activeContexts.forEach(ctx => {
             parts.push(`- ${ctx.name} (priority: ${ctx.priority}): ${ctx.description}`);
-            if (ctx.metadata?.boost_categories && ctx.metadata.boost_categories.length > 0) {
+            if (ctx.metadata ? .boost_categories && ctx.metadata.boost_categories.length > 0) {
                 parts.push(`  Boost categories: ${ctx.metadata.boost_categories.join(", ")}`);
             }
-            if (ctx.metadata?.campaign_themes && ctx.metadata.campaign_themes.length > 0) {
+            if (ctx.metadata ? .campaign_themes && ctx.metadata.campaign_themes.length > 0) {
                 parts.push(`  Themes: ${ctx.metadata.campaign_themes.join(", ")}`);
             }
         });
         parts.push("=== END CONTEXTS ===");
     }
-    
+
     parts.push("");
     parts.push("Customer:");
     parts.push(JSON.stringify(customer));
     parts.push("");
     parts.push("Candidate campaigns:");
     parts.push(JSON.stringify(campaigns));
-    
+
     return parts.join("\n");
 }
 
@@ -252,7 +252,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
             temperature: 0.2,
         });
 
-        const raw = response.choices?.[0]?.message?.content || "{}";
+        const raw = response.choices ? .[0] ? .message ? .content || "{}";
         let cleanedRaw = raw;
         // Remove markdown code blocks if present
         if (cleanedRaw.includes("```")) {
@@ -274,7 +274,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
         const selected = Array.isArray(parsed.assignments) ? parsed.assignments : [];
 
         const valid = selected
-            .filter((a) => typeof a?.campaign_id === "string")
+            .filter((a) => typeof a ? .campaign_id === "string")
             .slice(0, limit)
             .map((a) => ({
                 campaign_id: a.campaign_id,
