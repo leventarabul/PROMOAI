@@ -183,26 +183,64 @@ export async function fetchCandidateCampaigns(pool, embedding, topK = 10) {
     return fallback.rows;
 }
 
-function buildSelectionPrompt(customer, campaigns, limit) {
-    return [
+/**
+ * Fetch currently active seasonal contexts from context-service
+ */
+export async function fetchActiveContexts(contextServiceUrl = "http://localhost:3005") {
+    try {
+        const response = await fetch(`${contextServiceUrl}/contexts/active`);
+        if (!response.ok) {
+            console.warn(`Failed to fetch contexts: ${response.status}`);
+            return [];
+        }
+        const data = await response.json();
+        return Array.isArray(data.contexts) ? data.contexts : [];
+    } catch (err) {
+        console.warn(`Error fetching active contexts: ${err.message}`);
+        return [];
+    }
+}
+
+function buildSelectionPrompt(customer, campaigns, limit, activeContexts = []) {
+    const parts = [
         "You are a campaign assignment engine.",
         "Select the most relevant campaigns for the customer.",
         `Return strict JSON: {\"assignments\":[{\"campaign_id\":\"...\",\"reason\":\"...\"}]}`,
         `Return at most ${limit} assignments.`,
         "Reasons must be short (max 140 chars).",
-        "",
-        "Customer:",
-        JSON.stringify(customer),
-        "",
-        "Candidate campaigns:",
-        JSON.stringify(campaigns),
-    ].join("\n");
+    ];
+    
+    // Add active contexts if available
+    if (activeContexts && activeContexts.length > 0) {
+        parts.push("");
+        parts.push("=== ACTIVE SEASONAL CONTEXTS ===");
+        parts.push("Consider these active contexts when selecting campaigns:");
+        activeContexts.forEach(ctx => {
+            parts.push(`- ${ctx.name} (priority: ${ctx.priority}): ${ctx.description}`);
+            if (ctx.metadata?.boost_categories && ctx.metadata.boost_categories.length > 0) {
+                parts.push(`  Boost categories: ${ctx.metadata.boost_categories.join(", ")}`);
+            }
+            if (ctx.metadata?.campaign_themes && ctx.metadata.campaign_themes.length > 0) {
+                parts.push(`  Themes: ${ctx.metadata.campaign_themes.join(", ")}`);
+            }
+        });
+        parts.push("=== END CONTEXTS ===");
+    }
+    
+    parts.push("");
+    parts.push("Customer:");
+    parts.push(JSON.stringify(customer));
+    parts.push("");
+    parts.push("Candidate campaigns:");
+    parts.push(JSON.stringify(campaigns));
+    
+    return parts.join("\n");
 }
 
-export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns, model, limit }) {
+export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns, model, limit, activeContexts = [] }) {
     const requestId = `assignment-gpt-${customer.customer_id}-${Date.now()}`;
     const start = Date.now();
-    const prompt = buildSelectionPrompt(customer, campaigns, limit);
+    const prompt = buildSelectionPrompt(customer, campaigns, limit, activeContexts);
 
     try {
         const response = await openai.chat.completions.create({
@@ -214,7 +252,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
             temperature: 0.2,
         });
 
-        const raw = response.choices ? .[0] ? .message ? .content || "{}";
+        const raw = response.choices?.[0]?.message?.content || "{}";
         let cleanedRaw = raw;
         // Remove markdown code blocks if present
         if (cleanedRaw.includes("```")) {
@@ -236,7 +274,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
         const selected = Array.isArray(parsed.assignments) ? parsed.assignments : [];
 
         const valid = selected
-            .filter((a) => typeof a ? .campaign_id === "string")
+            .filter((a) => typeof a?.campaign_id === "string")
             .slice(0, limit)
             .map((a) => ({
                 campaign_id: a.campaign_id,

@@ -8,6 +8,7 @@ import {
     buildCustomerProfileText,
     createOpenAIClient,
     fetchActiveCustomers,
+    fetchActiveContexts,
     fetchCandidateCampaigns,
     generateProfileEmbedding,
     saveAssignments,
@@ -32,6 +33,7 @@ const {
     ASSIGNMENT_GPT_MODEL,
     ASSIGNMENT_TOP_K,
     ASSIGNMENT_LIMIT,
+    CONTEXT_SERVICE_URL,
 } = process.env;
 
 if (!OPENAI_API_KEY) {
@@ -54,8 +56,18 @@ const CRON_EXPR = ASSIGNMENT_CRON || "0 2 * * *";
 const GPT_MODEL = ASSIGNMENT_GPT_MODEL || "gpt-3.5-turbo";
 const TOP_K = Number(ASSIGNMENT_TOP_K || 10);
 const MAX_ASSIGNMENTS_PER_USER = Number(ASSIGNMENT_LIMIT || 3);
+const CONTEXT_SERVICE = CONTEXT_SERVICE_URL || "http://localhost:3005";
 
 async function assignForCustomers(customerIds = null) {
+    // Fetch active seasonal contexts
+    const activeContexts = await fetchActiveContexts(CONTEXT_SERVICE);
+    if (activeContexts.length > 0) {
+        console.log(`[assignment] Loaded ${activeContexts.length} active context(s)`);
+        activeContexts.forEach(ctx => {
+            console.log(`  - ${ctx.name} (priority: ${ctx.priority})`);
+        });
+    }
+
     const customers = await fetchActiveCustomers(pool, customerIds);
 
     const summary = {
@@ -63,6 +75,7 @@ async function assignForCustomers(customerIds = null) {
         processed: 0,
         assignmentsInserted: 0,
         failures: 0,
+        activeContexts: activeContexts.length,
     };
 
     for (const customer of customers) {
@@ -83,6 +96,7 @@ async function assignForCustomers(customerIds = null) {
                 continue;
             }
 
+            // Pass active contexts to GPT for context-aware selection
             const selected = await selectCampaignsWithGPT({
                 openai,
                 pool,
@@ -90,6 +104,7 @@ async function assignForCustomers(customerIds = null) {
                 campaigns: candidates,
                 model: GPT_MODEL,
                 limit: MAX_ASSIGNMENTS_PER_USER,
+                activeContexts: activeContexts,
             });
 
             const inserted = await saveAssignments(pool, customer.customer_id, selected);
@@ -130,16 +145,19 @@ async function bootstrap() {
     await pool.query("SELECT 1");
 
     app.listen(PORT, () => {
-        console.log(`Assignment Service listening on ${PORT}`);
+        console.log(`\n🚀 Assignment Service listening on port ${PORT}`);
+        console.log(`📅 Cron schedule: ${CRON_EXPR}`);
+        console.log(`🤖 GPT Model: ${GPT_MODEL}`);
+        console.log(`📍 Context Service: ${CONTEXT_SERVICE}`);
     });
 
     cron.schedule(CRON_EXPR, async() => {
-        console.log(`[assignment-service] Scheduled run started (${CRON_EXPR})`);
+        console.log(`\n[assignment-service] Scheduled run started (${CRON_EXPR})`);
         const summary = await assignForCustomers();
         console.log("[assignment-service] Scheduled run done", summary);
     });
 
-    console.log(`[assignment-service] Cron scheduled: ${CRON_EXPR}`);
+    console.log(`[assignment-service] Cron scheduled: ${CRON_EXPR}\n`);
 
     if (process.argv.includes("--run-once")) {
         const summary = await assignForCustomers();
