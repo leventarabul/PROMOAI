@@ -36,7 +36,7 @@ const pool = new pg.Pool({
 });
 
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-const EMBEDDING_MODEL = "text-embedding-ada-002";
+const EMBEDDING_MODEL = "text-embedding-3-small"; // 1536 dimensions, newer generation
 
 /** Log OpenAI request to database */
 async function logOpenAIRequest(requestId, model, endpoint, requestInput, responseOutput, statusCode, errorMessage, durationMs) {

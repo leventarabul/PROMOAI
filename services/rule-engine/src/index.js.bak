@@ -281,7 +281,7 @@ app.post("/campaigns/search", async(req, res) => {
             requestId,
             EMBEDDING_MODEL,
             "/v1/embeddings",
-            query?.substring(0, 1000) || "(provided embedding)",
+            query ? .substring(0, 1000) || "(provided embedding)",
             null,
             err.status || 500,
             err.message,
