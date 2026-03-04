@@ -215,6 +215,12 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
         });
 
         const raw = response.choices ? .[0] ? .message ? .content || "{}";
+        let cleanedRaw = raw;
+        // Remove markdown code blocks if present
+        if (cleanedRaw.includes("```")) {
+            cleanedRaw = cleanedRaw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        }
+
         await logOpenAIRequest(pool, {
             requestId,
             model,
@@ -226,7 +232,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
             durationMs: Date.now() - start,
         });
 
-        const parsed = JSON.parse(raw);
+        const parsed = JSON.parse(cleanedRaw);
         const selected = Array.isArray(parsed.assignments) ? parsed.assignments : [];
 
         const valid = selected
