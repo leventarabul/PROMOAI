@@ -348,3 +348,45 @@ Response
 ---
 
 If you want additional diagrams (data flow, service topology, sequence flows) or a Jira‑ready backlog, tell me which format you want.
+
+---
+
+## 🗓️ Session Update — 2026-03-04 (End of Day)
+
+### ✅ Implemented Today
+
+1. OpenAI request logging is active for embedding/search flows.
+2. Embedding model usage stabilized (`text-embedding-3-small`).
+3. Method 2 schema implemented:
+  - `customer_profiles`
+  - `customer_behavior_summary`
+  - `customer_embeddings`
+  - `customer_changes` trigger/notify
+4. New migration added:
+  - `infra/db/migrations/005_customer_profiles_and_behavior.sql`
+5. Customer seed added:
+  - `infra/db/seed_customers.sql`
+6. Assignment Service MVP implemented:
+  - `services/assignment-service/src/index.js`
+  - `services/assignment-service/src/engine.js`
+  - `services/assignment-service/package.json`
+  - Endpoint: `POST /assign/run`
+  - Scheduler: cron-based daily batch run
+7. Rule Engine startup and syntax issues were corrected.
+
+### 🧪 Validation
+
+- Migration + seed executed successfully.
+- Assignment run-once executed successfully.
+- Current DB result: 15 assignment rows inserted.
+
+### 📍 Where we paused
+
+- Method 2 is now working as MVP in local batch mode.
+- Not yet added to `docker-compose.yml` as a managed service.
+
+### ▶️ Next step (tomorrow)
+
+1. Add assignment-service to docker-compose.
+2. Add simple end-to-end run script (seed + assign + verify).
+3. Tune GPT prompt and assignment dedup/ranking thresholds.

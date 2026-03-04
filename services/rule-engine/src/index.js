@@ -292,3 +292,8 @@ app.post("/campaigns/search", async(req, res) => {
         return res.status(500).json({ status: "error", message: err.message });
     }
 });
+
+const port = process.env.RULE_ENGINE_PORT || process.env.PORT || 8000;
+app.listen(port, () => {
+    console.log(`Rule Engine listening on ${port}`);
+});

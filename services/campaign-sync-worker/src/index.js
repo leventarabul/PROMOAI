@@ -20,6 +20,7 @@ const {
     OPENAI_API_KEY,
 } = process.env;
 
+const EMBEDDING_MODEL = "text-embedding-3-small";
 const WORKER_PORT = process.env.SYNC_WORKER_PORT || 3003;
 
 if (!OPENAI_API_KEY) {
