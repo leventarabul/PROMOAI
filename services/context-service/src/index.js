@@ -246,6 +246,198 @@ app.post("/contexts/generate-embeddings", async(req, res) => {
 });
 
 // ============================================================================
+// Admin API Endpoints for Context Management
+// ============================================================================
+
+/**
+ * Get context details by ID
+ */
+app.get("/admin/contexts/:contextId", async(req, res) => {
+    try {
+        const { contextId } = req.params;
+
+        const result = await pool.query(`
+      SELECT 
+        sc.context_id,
+        sc.name,
+        sc.description,
+        sc.start_date,
+        sc.end_date,
+        sc.priority,
+        sc.tags,
+        sc.metadata,
+        ac.status as active_status,
+        ac.activated_at,
+        ac.deactivated_at,
+        CASE WHEN ce.context_id IS NOT NULL THEN true ELSE false END as has_embedding
+      FROM seasonal_contexts sc
+      LEFT JOIN active_contexts ac ON sc.context_id = ac.context_id
+      LEFT JOIN context_embeddings ce ON sc.context_id = ce.context_id
+      WHERE sc.context_id = $1
+    `, [contextId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Context not found",
+            });
+        }
+
+        res.json({
+            status: "ok",
+            context: result.rows[0],
+        });
+    } catch (err) {
+        console.error("Failed to fetch context:", err.message);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to fetch context",
+            error: err.message
+        });
+    }
+});
+
+/**
+ * Update a seasonal context
+ */
+app.put("/admin/contexts/:contextId", async(req, res) => {
+    try {
+        const { contextId } = req.params;
+        const { name, description, start_date, end_date, priority, tags, metadata } = req.body;
+
+        const updateFields = [];
+        const updateValues = [];
+        let paramCount = 1;
+
+        if (name !== undefined) {
+            updateFields.push(`name = $${paramCount++}`);
+            updateValues.push(name);
+        }
+        if (description !== undefined) {
+            updateFields.push(`description = $${paramCount++}`);
+            updateValues.push(description);
+        }
+        if (start_date !== undefined) {
+            updateFields.push(`start_date = $${paramCount++}`);
+            updateValues.push(start_date);
+        }
+        if (end_date !== undefined) {
+            updateFields.push(`end_date = $${paramCount++}`);
+            updateValues.push(end_date);
+        }
+        if (priority !== undefined) {
+            updateFields.push(`priority = $${paramCount++}`);
+            updateValues.push(priority);
+        }
+        if (tags !== undefined) {
+            updateFields.push(`tags = $${paramCount++}`);
+            updateValues.push(tags);
+        }
+        if (metadata !== undefined) {
+            updateFields.push(`metadata = $${paramCount++}`);
+            updateValues.push(JSON.stringify(metadata));
+        }
+
+        updateFields.push(`updated_at = NOW()`);
+        updateValues.push(contextId);
+
+        const result = await pool.query(
+            `UPDATE seasonal_contexts 
+       SET ${updateFields.join(", ")}
+       WHERE context_id = $${paramCount}
+       RETURNING *`,
+            updateValues
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Context not found",
+            });
+        }
+
+        res.json({
+            status: "ok",
+            message: "Context updated successfully",
+            context: result.rows[0],
+        });
+    } catch (err) {
+        console.error("Failed to update context:", err.message);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to update context",
+            error: err.message
+        });
+    }
+});
+
+/**
+ * Delete a seasonal context
+ */
+app.delete("/admin/contexts/:contextId", async(req, res) => {
+    try {
+        const { contextId } = req.params;
+
+        const result = await pool.query(
+            `DELETE FROM seasonal_contexts WHERE context_id = $1 RETURNING context_id`,
+            [contextId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "Context not found",
+            });
+        }
+
+        res.json({
+            status: "ok",
+            message: "Context deleted successfully",
+            deleted_context_id: contextId,
+        });
+    } catch (err) {
+        console.error("Failed to delete context:", err.message);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to delete context",
+            error: err.message
+        });
+    }
+});
+
+/**
+ * Get context statistics
+ */
+app.get("/admin/stats", async(req, res) => {
+    try {
+        const contextCount = await pool.query(`SELECT COUNT(*) as count FROM seasonal_contexts`);
+        const activeCount = await pool.query(`SELECT COUNT(*) as count FROM active_contexts WHERE status = 'active'`);
+        const embeddingCount = await pool.query(`SELECT COUNT(*) as count FROM context_embeddings`);
+        const upcomingCount = await pool.query(`
+      SELECT COUNT(*) as count FROM seasonal_contexts 
+      WHERE start_date > CURRENT_DATE AND end_date > CURRENT_DATE
+    `);
+
+        res.json({
+            status: "ok",
+            stats: {
+                total_contexts: contextCount.rows[0].count,
+                active_contexts: activeCount.rows[0].count,
+                contexts_with_embeddings: embeddingCount.rows[0].count,
+                upcoming_contexts: upcomingCount.rows[0].count,
+            },
+        });
+    } catch (err) {
+        console.error("Failed to fetch stats:", err.message);
+        res.status(500).json({
+            status: "error",
+            message: "Failed to fetch statistics",
+            error: err.message
+        });
+    }
+});
+
+// ============================================================================
 // Startup
 // ============================================================================
 
