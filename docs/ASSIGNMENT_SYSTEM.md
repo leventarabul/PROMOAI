@@ -1,7 +1,7 @@
 # PromoAI Assignment System - Product Documentation
 
 **Version:** 2.0  
-**Last Updated:** March 5, 2026  
+**Last Updated:** March 13, 2026  
 **Author:** PromoAI Engineering Team
 
 ---
@@ -332,7 +332,7 @@ Select top 3...
 Benefits:
 ✅ Token efficient (2K tokens)
 ✅ Fast (1.5 seconds total)
-✅ Cost-effective ($0.01 per request)
+✅ Cost-effective (~$0.001 per customer, ~$1 per 1000 users)
 ✅ High accuracy (pre-filtered by semantic relevance)
 ```
 
@@ -343,6 +343,19 @@ Benefits:
 | **Naive (No RAG)** | 100,000 | $500 | 8-10s |
 | **RAG (PromoAI)** | 2,000 | $1 | 1.5-2s |
 | **Savings** | 50x | 500x | 5x faster |
+
+#### Cost Metric Definitions (Standard)
+
+| Metric | Formula | Current Value | Notes |
+|--------|---------|---------------|-------|
+| **cost_per_customer** | total_pipeline_cost / customers_processed | ~$0.001 | Includes 1 embedding + 1 GPT selection |
+| **cost_per_1000_users** | cost_per_customer × 1000 | ~$1.00 | Same assumptions as RAG row |
+| **cost_per_batch** | cost_per_customer × batch_size | ~$0.0026 (5 users) | Based on latest sample run |
+
+**Assumptions (pricing snapshot):**
+- Prices and latency values are based on the current model mix in this document (`text-embedding-3-small` + `gpt-3.5-turbo`).
+- Batch sample references 5 customers (10 API calls total).
+- Reported values are directional and should be refreshed in weekly operations reports.
 
 ---
 
@@ -1090,7 +1103,6 @@ GROUP BY assignment_reason;
 ---
 
 ## Performance & Metrics
-````
 
 ### Production Metrics (Latest Run)
 
@@ -1126,6 +1138,29 @@ Assignments Created:
 │ ...      │ ...                       │ ...                         │
 └──────────┴───────────────────────────┴─────────────────────────────┘
 ```
+
+### Operational KPIs (Recommended Reporting Set)
+
+| KPI | Definition | Current (n=5 sample) | Target (Production) |
+|-----|------------|----------------------|---------------------|
+| **p50_latency_per_customer** | Median end-to-end assignment latency | ~2.0s | ≤2.5s |
+| **p95_latency_per_customer** | 95th percentile end-to-end latency | N/A (insufficient sample) | ≤3.0s |
+| **p99_latency_per_customer** | 99th percentile end-to-end latency | N/A (insufficient sample) | ≤4.0s |
+| **assignment_success_rate** | Successful customers / processed customers | 100% | ≥99.0% |
+| **openai_error_rate** | OpenAI failed calls / total OpenAI calls | 0% | ≤1.0% |
+| **fallback_rate** | Similarity-only fallback usage | Not recorded | ≤2.0% |
+| **db_write_failure_rate** | Failed assignment insert/upsert ratio | 0% (sample) | ≤0.5% |
+
+### Production Readiness Gates (Go / No-Go)
+
+A release is considered **production-ready** when all of the following are met:
+
+1. **Observation Window:** minimum 7 consecutive days of monitoring.
+2. **Volume:** minimum 10,000 processed customers in the observation period.
+3. **Reliability:** assignment success rate ≥99.0% and OpenAI error rate ≤1.0%.
+4. **Latency:** p95 ≤3.0s and p99 ≤4.0s per customer.
+5. **Cost Stability:** cost per customer variation remains within ±20% week-over-week.
+6. **Fallback Safety:** fallback rate ≤2.0% with no critical incident.
 
 ### Scalability Projections
 
@@ -1550,7 +1585,7 @@ Future: Image + Text embeddings
 
 ## Conclusion
 
-PromoAI's Assignment System represents a **production-ready implementation** of cutting-edge AI technologies:
+PromoAI's Assignment System represents a **pilot-to-production ready implementation path** of cutting-edge AI technologies:
 
 ✅ **RAG Pattern** for efficient, contextual recommendations  
 ✅ **Vector Search** for semantic understanding  
@@ -1562,7 +1597,7 @@ The system combines the best of both worlds:
 - **Speed & Cost** of vector search
 - **Intelligence & Explainability** of large language models
 
-**Ready for production deployment today.**
+**Ready for controlled production rollout with SLO-based gating.**
 
 ---
 
@@ -1576,5 +1611,5 @@ For technical questions or integration support:
 ---
 
 *Document Version: 2.0*  
-*Last Updated: March 5, 2026*  
+*Last Updated: March 13, 2026*  
 *© 2026 PromoAI. All rights reserved.*

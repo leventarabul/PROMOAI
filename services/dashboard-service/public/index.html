@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PromoAI — Demo Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+    <!-- ═══════════════ Header ═══════════════ -->
+    <header>
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">🧠</span>
+                <div>
+                    <h1>PromoAI</h1>
+                    <span class="subtitle">AI-Powered Campaign Assignment Engine</span>
+                </div>
+            </div>
+            <div class="header-status" id="systemStatus">
+                <span class="status-dot"></span>
+                <span>Sistem Aktif</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════ Tab Navigation ═══════════════ -->
+    <nav class="tabs">
+        <button class="tab active" data-tab="trends">
+        <span class="tab-icon">🔍</span>
+        <span class="tab-label">Trend Algılama</span>
+        <span class="tab-desc">RSS + NewsAPI → Filtre → Context</span>
+    </button>
+        <button class="tab" data-tab="vectors">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">Vektör DB</span>
+        <span class="tab-desc">3D Embedding Görselleştirme</span>
+    </button>
+        <button class="tab" data-tab="assignments">
+        <span class="tab-icon">🎯</span>
+        <span class="tab-label">Kampanya Atama</span>
+        <span class="tab-desc">RAG + GPT Pipeline</span>
+    </button>
+        <button class="tab" data-tab="results">
+        <span class="tab-icon">📋</span>
+        <span class="tab-label">Atama Sonuçları</span>
+        <span class="tab-desc">Kime Ne, Neden?</span>
+    </button>
+    </nav>
+
+    <!-- ═══════════════ Main Content ═══════════════ -->
+    <main>
+
+        <!-- ────── Tab 1: Trend Detection ────── -->
+        <section class="tab-content active" id="tab-trends">
+            <div class="action-bar">
+                <button class="btn-primary" id="btnDetectTrends">
+                <span class="btn-icon">🚀</span>
+                Trendleri Algıla
+            </button>
+                <div class="action-info" id="trendTimer"></div>
+            </div>
+
+            <div class="pipeline" id="trendPipeline">
+                <!-- Step 1: Data Sources -->
+                <div class="pipeline-step hidden" id="trendStep1">
+                    <div class="step-header">
+                        <span class="step-num">1</span>
+                        <h3>Veri Kaynakları Taranıyor</h3>
+                    </div>
+                    <div class="source-grid" id="trendSources"></div>
+                    <div class="step-summary" id="trendSourceSummary"></div>
+                </div>
+
+                <!-- Step 2: Arrow -->
+                <div class="pipeline-arrow hidden" id="trendArrow1">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label" id="trendMergeLabel"></div>
+                </div>
+
+                <!-- Step 3: Filters -->
+                <div class="pipeline-step hidden" id="trendStep2">
+                    <div class="step-header">
+                        <span class="step-num">2</span>
+                        <h3>4 Katmanlı Akıllı Filtre</h3>
+                    </div>
+                    <div class="filter-layers" id="trendFilters"></div>
+                </div>
+
+                <!-- Step 4: Arrow -->
+                <div class="pipeline-arrow hidden" id="trendArrow2">
+                    <div class="arrow-line"></div>
+                    <div class="arrow-label" id="trendFilterLabel"></div>
+                </div>
+
+                <!-- Step 5: Results -->
+                <div class="pipeline-step hidden" id="trendStep3">
+                    <div class="step-header">
+                        <span class="step-num">3</span>
+                        <h3>Oluşturulan Context'ler</h3>
+                    </div>
+                    <div class="context-cards" id="trendContexts"></div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="result-summary hidden" id="trendSummary"></div>
+        </section>
+
+        <!-- ────── Tab 2: Vector DB ────── -->
+        <section class="tab-content" id="tab-vectors">
+            <div class="action-bar">
+                <button class="btn-primary" id="btnLoadEmbeddings">
+                <span class="btn-icon">📊</span>
+                Embedding'leri Yükle
+            </button>
+                <div class="embedding-stats" id="embeddingStats"></div>
+            </div>
+
+            <div class="scatter-container">
+                <div id="scatterPlot" style="width:100%; height:600px;"></div>
+                <div class="scatter-legend" id="scatterLegend">
+                    <div class="legend-item"><span class="legend-dot" style="background:#ff4466"></span> Kampanyalar</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#00d4ff"></span> Müşteriler</div>
+                    <div class="legend-item"><span class="legend-dot" style="background:#00ff88"></span> Context'ler</div>
+                </div>
+            </div>
+            <div class="vector-message hidden" id="vectorMessage"></div>
+        </section>
+
+        <!-- ────── Tab 3: Assignment Pipeline ────── -->
+        <section class="tab-content" id="tab-assignments">
+            <div class="action-bar">
+                <button class="btn-primary" id="btnRunAssignment">
+                <span class="btn-icon">🎯</span>
+                Atama Yap
+            </button>
+                <div class="action-info" id="assignTimer"></div>
+            </div>
+
+            <!-- Pipeline Steps -->
+            <div class="assign-pipeline" id="assignPipeline">
+                <div class="assign-step" id="aStep1">
+                    <div class="assign-step-icon">📥</div>
+                    <div class="assign-step-label">Context Yükle</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="aStep2">
+                    <div class="assign-step-icon">👥</div>
+                    <div class="assign-step-label">Müşteri Al</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="aStep3">
+                    <div class="assign-step-icon">🧬</div>
+                    <div class="assign-step-label">Embedding</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="aStep4">
+                    <div class="assign-step-icon">🔍</div>
+                    <div class="assign-step-label">Vector Search</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="aStep5">
+                    <div class="assign-step-icon">🤖</div>
+                    <div class="assign-step-label">GPT Seçim</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="aStep6">
+                    <div class="assign-step-icon">💾</div>
+                    <div class="assign-step-label">Kaydet</div>
+                    <div class="assign-step-status"></div>
+                </div>
+            </div>
+
+            <!-- Customer Progress -->
+            <div class="customer-progress hidden" id="customerProgress">
+                <h3>Müşteri İşlem Durumu</h3>
+                <div id="customerCards"></div>
+            </div>
+
+            <!-- Assignment Summary -->
+            <div class="result-summary hidden" id="assignSummary"></div>
+        </section>
+
+        <!-- ────── Tab 4: Results ────── -->
+        <section class="tab-content" id="tab-results">
+            <div class="action-bar">
+                <button class="btn-primary" id="btnLoadResults">
+                <span class="btn-icon">📋</span>
+                Sonuçları Getir
+            </button>
+                <div class="action-info" id="resultCount"></div>
+            </div>
+
+            <div class="results-container" id="resultsContainer"></div>
+        </section>
+
+    </main>
+
+    <footer>
+        <span>PromoAI © 2026 — AI-Powered Campaign Assignment Engine</span>
+    </footer>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/trends.js"></script>
+    <script src="/js/vectors.js"></script>
+    <script src="/js/assignments.js"></script>
+    <script src="/js/results.js"></script>
+</body>
+
+</html>

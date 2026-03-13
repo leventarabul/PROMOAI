@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Bash(curl -s -X POST http://localhost:3006/admin/detect-now)",
+      "Bash(PGPASSWORD=promoai psql -h localhost -U promoai -d campaign -c \"SELECT customer_id, segment, age_range FROM customer_profiles LIMIT 5;\")",
+      "Bash(psql \"postgresql://promoai:promoai@localhost:5432/campaign\" -c \"\\\\d campaign_embeddings\")"
+    ]
+  }
+}
