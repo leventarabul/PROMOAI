@@ -13,15 +13,15 @@ class TrendDetector {
         this.openai = openai;
 
         this.apiClient = new TrendAPIClient({
-            apiChoice: options.apiChoice || 'pytrends',
+            apiChoice: options.apiChoice || 'newsapi',
             semrushKey: options.semrushKey,
+            newsApiKey: options.newsApiKey,
             country: options.country || 'TR'
         });
 
         this.filteringEngine = new FilteringEngine(pool, openai);
-        this.contextCreator = new ContextCreator(pool, openai);
-
         this.contextServiceUrl = options.contextServiceUrl || 'http://localhost:3005';
+        this.contextCreator = new ContextCreator(pool, openai, { contextServiceUrl: this.contextServiceUrl });
     }
 
     /**

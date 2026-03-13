@@ -133,7 +133,7 @@ Output: [0.0234, -0.1923, 0.4521, ..., 0.0891]  (1536 numbers)
 
 **Why pgvector:**
 - 🗄️ **SQL Integration**: No separate vector DB needed
-- ⚡ **Fast Indexing**: IVFFlat index for <10ms searches
+- ⚡ **Fast Indexing**: HNSW index for <10ms searches (works correctly for any dataset size)
 - 🔄 **ACID Transactions**: Reliable data consistency
 - 📈 **Scalable**: Handles millions of vectors
 
@@ -227,9 +227,9 @@ CREATE TABLE campaign_embeddings (
 );
 
 -- Fast similarity search index
-CREATE INDEX ON campaign_embeddings 
-USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
+CREATE INDEX ON campaign_embeddings
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 8, ef_construction = 64);
 ```
 
 **Real Example:**
@@ -1229,10 +1229,10 @@ CREATE TABLE customer_embeddings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_customer_embeddings_vector 
-ON customer_embeddings 
-USING ivfflat (profile_embedding vector_cosine_ops)
-WITH (lists = 100);
+CREATE INDEX idx_customer_embeddings_vector
+ON customer_embeddings
+USING hnsw (profile_embedding vector_cosine_ops)
+WITH (m = 8, ef_construction = 64);
 ```
 
 #### `campaign_embeddings`
@@ -1244,10 +1244,10 @@ CREATE TABLE campaign_embeddings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_campaign_embeddings_vector 
-ON campaign_embeddings 
-USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
+CREATE INDEX idx_campaign_embeddings_vector
+ON campaign_embeddings
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 8, ef_construction = 64);
 ```
 
 #### `assignments`
@@ -1466,7 +1466,7 @@ Persists assignments to database with deduplication.
 Throughput: ~2 customers/second
 Daily Capacity: 172,800 customers/day (assuming 24-hour operation)
 Cost: $0.0012 per customer
-Database: 10M+ vectors supported (pgvector IVFFlat)
+Database: 10M+ vectors supported (pgvector HNSW)
 ```
 
 ### Optimization Roadmap

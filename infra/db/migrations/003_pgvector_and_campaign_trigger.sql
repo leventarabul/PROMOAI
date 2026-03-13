@@ -12,10 +12,10 @@ CREATE TABLE IF NOT EXISTS campaign_embeddings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Index for fast similarity search (IVFFlat — good for <1M rows)
+-- Index for fast similarity search (HNSW — works correctly for any dataset size)
 CREATE INDEX IF NOT EXISTS idx_campaign_embeddings_vector
-  ON campaign_embeddings USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 10);
+  ON campaign_embeddings USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 8, ef_construction = 64);
 
 -- 3. Trigger function: notify on campaign changes
 CREATE OR REPLACE FUNCTION notify_campaign_change()

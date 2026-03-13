@@ -217,10 +217,10 @@ function buildSelectionPrompt(customer, campaigns, limit, activeContexts = []) {
         parts.push("Consider these active contexts when selecting campaigns:");
         activeContexts.forEach(ctx => {
             parts.push(`- ${ctx.name} (priority: ${ctx.priority}): ${ctx.description}`);
-            if (ctx.metadata ? .boost_categories && ctx.metadata.boost_categories.length > 0) {
+            if (ctx.metadata?.boost_categories && ctx.metadata.boost_categories.length > 0) {
                 parts.push(`  Boost categories: ${ctx.metadata.boost_categories.join(", ")}`);
             }
-            if (ctx.metadata ? .campaign_themes && ctx.metadata.campaign_themes.length > 0) {
+            if (ctx.metadata?.campaign_themes && ctx.metadata.campaign_themes.length > 0) {
                 parts.push(`  Themes: ${ctx.metadata.campaign_themes.join(", ")}`);
             }
         });
@@ -252,7 +252,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
             temperature: 0.2,
         });
 
-        const raw = response.choices ? .[0] ? .message ? .content || "{}";
+        const raw = response.choices?.[0]?.message?.content || "{}";
         let cleanedRaw = raw;
         // Remove markdown code blocks if present
         if (cleanedRaw.includes("```")) {
@@ -274,7 +274,7 @@ export async function selectCampaignsWithGPT({ openai, pool, customer, campaigns
         const selected = Array.isArray(parsed.assignments) ? parsed.assignments : [];
 
         const valid = selected
-            .filter((a) => typeof a ? .campaign_id === "string")
+            .filter((a) => typeof a?.campaign_id === "string")
             .slice(0, limit)
             .map((a) => ({
                 campaign_id: a.campaign_id,

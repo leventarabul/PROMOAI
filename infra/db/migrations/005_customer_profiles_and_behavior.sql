@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS customer_embeddings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_customer_embeddings_vector
-  ON customer_embeddings USING ivfflat (profile_embedding vector_cosine_ops)
-  WITH (lists = 10);
+  ON customer_embeddings USING hnsw (profile_embedding vector_cosine_ops)
+  WITH (m = 8, ef_construction = 64);
 
 CREATE OR REPLACE FUNCTION notify_customer_change()
 RETURNS TRIGGER AS $$

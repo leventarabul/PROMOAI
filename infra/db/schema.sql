@@ -75,8 +75,8 @@ CREATE TABLE campaign_embeddings (
 );
 
 CREATE INDEX idx_campaign_embeddings_vector
-  ON campaign_embeddings USING ivfflat (embedding vector_cosine_ops)
-  WITH (lists = 10);
+  ON campaign_embeddings USING hnsw (embedding vector_cosine_ops)
+  WITH (m = 8, ef_construction = 64);
 
 -- Notify on campaign changes (INSERT/UPDATE/DELETE)
 CREATE OR REPLACE FUNCTION notify_campaign_change()
@@ -168,8 +168,8 @@ CREATE TABLE customer_embeddings (
 );
 
 CREATE INDEX idx_customer_embeddings_vector
-  ON customer_embeddings USING ivfflat (profile_embedding vector_cosine_ops)
-  WITH (lists = 10);
+  ON customer_embeddings USING hnsw (profile_embedding vector_cosine_ops)
+  WITH (m = 8, ef_construction = 64);
 
 -- Notify worker(s) when customer profile changes
 CREATE OR REPLACE FUNCTION notify_customer_change()

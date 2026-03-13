@@ -51,8 +51,9 @@ const openai = new OpenAI({
 let trendDetector;
 const initializeTrendDetector = () => {
     trendDetector = new TrendDetector(pool, openai, {
-        apiChoice: process.env.TREND_API_CHOICE || 'pytrends',
+        apiChoice: process.env.TREND_API_CHOICE || 'newsapi',
         semrushKey: process.env.SEMRUSH_API_KEY,
+        newsApiKey: process.env.NEWS_API_KEY,
         country: process.env.TREND_DETECTION_COUNTRY || 'TR',
         contextServiceUrl: process.env.CONTEXT_SERVICE_URL || 'http://localhost:3005'
     });

@@ -66,11 +66,11 @@ CREATE TABLE IF NOT EXISTS context_embeddings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Vector similarity index for context embeddings
-CREATE INDEX idx_context_embeddings_vector 
-ON context_embeddings 
-USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 50);
+-- Vector similarity index for context embeddings (HNSW — no probe tuning needed)
+CREATE INDEX idx_context_embeddings_vector
+ON context_embeddings
+USING hnsw (embedding vector_cosine_ops)
+WITH (m = 8, ef_construction = 64);
 
 COMMENT ON TABLE context_embeddings IS 'Vector embeddings of seasonal contexts for semantic matching';
 COMMENT ON COLUMN context_embeddings.content IS 'Text representation of context used to generate embedding';

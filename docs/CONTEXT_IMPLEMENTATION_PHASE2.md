@@ -69,12 +69,12 @@ trend-detection-service (Port 3006)
 
 ```javascript
 Layer 1: Volume Threshold
-  - Minimum: 100,000 searches in 6 hours
+  - Minimum: 30,000 estimated searches (env: TREND_VOLUME_THRESHOLD=30000)
   - Growth: ≥50% increase
   - Filters out: Niche topics
 
 Layer 2: Relevance Threshold
-  - Vector similarity: ≥0.75 to existing campaigns
+  - Vector similarity: ≥0.18 to existing campaigns (env: TREND_RELEVANCE_THRESHOLD=0.18)
   - Uses: OpenAI text-embedding-3-small
   - Filters out: Unrelated trends
 
@@ -541,22 +541,16 @@ curl -X POST http://localhost:3006/admin/detect-now
   - `services/context-service/src/contextManager.js`
 - `openai_request_logs.response_output` for context embedding calls is now populated (not null for new records).
 
-### Current validated state
+### Current validated state (2026-03-13)
 
-- Normal mode (`TREND_RELEVANCE_THRESHOLD=0.75`, category match enabled):
-  - `trendsFound > 0`, but typically `trendsFiltered = 0`, `contextsCreated = 0` due to strict relevance/category fit.
-- Test mode (`TREND_RELEVANCE_THRESHOLD=0.60`, `TREND_DISABLE_CATEGORY_MATCH=true`):
-  - At least one auto context was created and persisted successfully.
-
-### Where we paused (continue from here tomorrow)
-
-1. Restore production-safe defaults in runtime:
-   - `TREND_RELEVANCE_THRESHOLD=0.75`
-   - `TREND_DISABLE_CATEGORY_MATCH=false`
-2. Improve Layer 4 category matching quality:
-   - replace placeholder vector in `findMatchingCampaigns()` with actual trend embedding reuse.
-3. Add campaign corpus aligned to trend topics (travel/electronics/school) to allow strict-mode qualification.
-4. Run A/B observation for 24h:
+- Production mode (`TREND_RELEVANCE_THRESHOLD=0.18`, `TREND_VOLUME_THRESHOLD=30000`):
+  - Consistently qualifies 3–5 trends per run (finance/tech focused)
+  - Example: `enflasyon`, `faiz`, `merkez bankası`, `ekonomi` all qualified
+  - 4 contexts created and embedded per cycle, injected into GPT assignment prompt
+- Layer 4 bug fixed: actual trend embedding now used (not placeholder vector)
+- Turkish RSS stop word list expanded: ~80 noise terms removed
+- Bigram sort bug fixed: whitelisted bigrams (`merkez bankası`, `yapay zeka`) bypass STOP_WORDS
+- All vector indices migrated from IVFFlat → HNSW (fixes 0-row results for small datasets)
    - strict mode vs relaxed mode on `trendsFiltered` and `contextsCreated`.
 
 ### Quick resume checklist

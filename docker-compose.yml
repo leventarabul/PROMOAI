@@ -13,6 +13,8 @@ services:
       - ./infra/db/schema.sql:/docker-entrypoint-initdb.d/001_schema.sql:ro
       - ./infra/db/migrations/006_seasonal_contexts.sql:/docker-entrypoint-initdb.d/006_seasonal_contexts.sql:ro
       - ./infra/db/migrations/007_auto_trends.sql:/docker-entrypoint-initdb.d/007_auto_trends.sql:ro
+    networks:
+      - promoai-network
 
   redis:
     image: redis:7
@@ -22,6 +24,8 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
+    networks:
+      - promoai-network
 
   context-service:
     build:
@@ -57,9 +61,13 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      NEWS_API_KEY: ${NEWS_API_KEY}
       TREND_DETECTION_PORT: 3006
-      TREND_API_CHOICE: pytrends
-      TREND_DETECTION_COUNTRY: TR
+      TREND_API_CHOICE: newsapi
+      TREND_DETECTION_COUNTRY: tr
+      TREND_VOLUME_THRESHOLD: 30000
+      TREND_RELEVANCE_THRESHOLD: 0.18
+      TREND_CATEGORY_SIMILARITY_THRESHOLD: 0.15
       CONTEXT_SERVICE_URL: http://context-service:3005
     ports:
       - "3006:3006"

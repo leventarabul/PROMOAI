@@ -4,9 +4,10 @@
  */
 
 class ContextCreator {
-    constructor(pool, openai) {
+    constructor(pool, openai, options = {}) {
         this.pool = pool;
         this.openai = openai;
+        this.contextServiceUrl = options.contextServiceUrl || 'http://localhost:3005';
     }
 
     /**
@@ -45,7 +46,7 @@ class ContextCreator {
                 context.tags,
                 JSON.stringify(context.metadata),
                 true, // is_auto_generated
-                'google_trends',
+                trend.source || 'newsapi',
                 context.ttl_hours,
                 context.expires_at,
                 JSON.stringify(context.trend_metadata)
@@ -176,12 +177,13 @@ class ContextCreator {
         const categories = [];
 
         const categoryMap = {
-            'travel': ['travel', 'flights', 'hotels', 'vacation'],
-            'electronics': ['electronics', 'gadgets', 'laptop', 'phone', 'tech'],
-            'fashion': ['fashion', 'clothing', 'apparel', 'shoes', 'dress'],
-            'grocery': ['grocery', 'food', 'shopping', 'supermarket'],
-            'dining': ['restaurant', 'food', 'dining', 'cafe'],
-            'retail': ['shopping', 'retail', 'store', 'mall']
+            'travel':       ['travel', 'flights', 'hotels', 'vacation', 'tatil', 'seyahat', 'otel', 'uçuş', 'turizm'],
+            'electronics':  ['electronics', 'gadgets', 'laptop', 'phone', 'tech', 'macbook', 'iphone', 'samsung', 'gaming', 'tablet'],
+            'fashion':      ['fashion', 'clothing', 'apparel', 'shoes', 'dress', 'moda', 'giyim', 'kıyafet'],
+            'grocery':      ['grocery', 'food', 'shopping', 'supermarket', 'market', 'süpermarket', 'alışveriş'],
+            'dining':       ['restaurant', 'food', 'dining', 'cafe', 'yemek', 'restoran', 'kafe', 'kahvaltı'],
+            'banking':      ['banking', 'finance', 'investment', 'faiz', 'enflasyon', 'döviz', 'borsa', 'kredi', 'banka', 'merkez bankası', 'ekonomi'],
+            'fuel':         ['fuel', 'gas', 'petrol', 'yakıt', 'benzin', 'otomobil', 'araba'],
         };
 
         for (const [category, keywords] of Object.entries(categoryMap)) {
@@ -200,21 +202,28 @@ class ContextCreator {
         const themes = [];
         const query = trend.query.toLowerCase();
 
-        // Theme inference
-        if (query.includes('travel') || query.includes('flight') || query.includes('hotel')) {
+        // EN + TR theme inference
+        if (query.includes('travel') || query.includes('flight') || query.includes('hotel') ||
+            query.includes('tatil') || query.includes('seyahat') || query.includes('otel')) {
             themes.push('summer_travel', 'flight_deals', 'vacation_packages');
         }
-        if (query.includes('electronic') || query.includes('tech') || query.includes('gadget')) {
+        if (query.includes('electronic') || query.includes('tech') || query.includes('gadget') ||
+            query.includes('macbook') || query.includes('iphone') || query.includes('gaming') || query.includes('laptop')) {
             themes.push('tech_sale', 'electronic_deals', 'gadget_offers');
         }
-        if (query.includes('school') || query.includes('back')) {
+        if (query.includes('school') || query.includes('back') || query.includes('okul') || query.includes('eğitim')) {
             themes.push('back_to_school', 'school_supplies');
         }
-        if (query.includes('sale') || query.includes('deal') || query.includes('discount')) {
+        if (query.includes('sale') || query.includes('deal') || query.includes('discount') ||
+            query.includes('indirim') || query.includes('kampanya') || query.includes('fırsat')) {
             themes.push('seasonal_sale', 'flash_sale');
         }
-        if (query.includes('summer')) {
-            themes.push('summer_promo', 'season_summer');
+        if (query.includes('faiz') || query.includes('enflasyon') || query.includes('döviz') ||
+            query.includes('borsa') || query.includes('merkez bankası') || query.includes('ekonomi')) {
+            themes.push('financial_awareness', 'banking_offers', 'investment_promo');
+        }
+        if (query.includes('yemek') || query.includes('restoran') || query.includes('sipariş')) {
+            themes.push('dining_deals', 'food_delivery', 'restaurant_cashback');
         }
 
         return [...new Set(themes)];
@@ -253,7 +262,7 @@ class ContextCreator {
                 created.push(context);
 
                 if (generateEmbeddings) {
-                    await this.generateEmbedding(context.context_id);
+                    await this.generateEmbedding(context.context_id, this.contextServiceUrl);
                 }
             } catch (err) {
                 console.error(`[Context] Batch creation error for "${trend.query}": ${err.message}`);

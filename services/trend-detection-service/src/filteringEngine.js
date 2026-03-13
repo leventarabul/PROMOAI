@@ -15,7 +15,7 @@ class FilteringEngine {
         this.openai = openai;
 
         // Configuration
-        this.VOLUME_THRESHOLD = 100000;
+        this.VOLUME_THRESHOLD = parseInt(process.env.TREND_VOLUME_THRESHOLD || '30000');
         this.RELEVANCE_THRESHOLD = parseFloat(process.env.TREND_RELEVANCE_THRESHOLD || '0.75');
         this.CATEGORY_SIMILARITY_THRESHOLD = parseFloat(process.env.TREND_CATEGORY_SIMILARITY_THRESHOLD || '0.65');
         this.DISABLE_CATEGORY_MATCH = String(process.env.TREND_DISABLE_CATEGORY_MATCH || 'false').toLowerCase() === 'true';
@@ -30,6 +30,17 @@ class FilteringEngine {
             'lifestyle': ['beauty', 'fitness', 'wellness', 'home', 'sports'],
             'finance': ['banking', 'insurance', 'investments', 'credit'],
             'automotive': ['cars', 'motorcycles', 'fuel', 'repairs', 'accessories']
+        };
+
+        // Turkish keyword → category mapping (in addition to English)
+        this.TR_CATEGORY_KEYWORDS = {
+            'shopping':     ['alışveriş', 'indirim', 'kampanya', 'elektronik', 'moda', 'giyim', 'hediye', 'market', 'süpermarket', 'macbook', 'iphone', 'samsung', 'gaming', 'laptop', 'tablet'],
+            'food':         ['yemek', 'restoran', 'sipariş', 'tarif', 'mutfak', 'kahvaltı', 'akşam yemeği', 'fast food', 'kafe'],
+            'travel':       ['tatil', 'seyahat', 'otel', 'uçuş', 'tur', 'rezervasyon', 'turizm', 'yurt dışı'],
+            'finance':      ['faiz', 'enflasyon', 'döviz', 'borsa', 'kredi', 'banka', 'bankası', 'merkez bankası', 'ekonomi', 'yatırım', 'hisse', 'dolar', 'euro'],
+            'entertainment':['film', 'dizi', 'müzik', 'konsер', 'oyun', 'sinema', 'netflix', 'youtube', 'oscars'],
+            'lifestyle':    ['sağlık', 'spor', 'fitness', 'güzellik', 'bakım', 'diyet', 'yoga'],
+            'automotive':   ['araba', 'otomobil', 'araç', 'yakıt', 'benzin', 'elektrikli', 'togg'],
         };
     }
 
@@ -54,7 +65,7 @@ class FilteringEngine {
         console.log(`  ✓ Duration check passed: ${trend.hours_trending} hours`);
 
         // Layer 3: Relevance (requires embedding call)
-        const relevance = await this.calculateTrendRelevance(trend);
+        const { relevance, embedding } = await this.calculateTrendRelevance(trend);
         if (relevance < this.RELEVANCE_THRESHOLD) {
             console.log(`  ✗ Relevance too low: ${relevance.toFixed(3)} < ${this.RELEVANCE_THRESHOLD}`);
             return null;
@@ -67,7 +78,7 @@ class FilteringEngine {
             matchedCampaigns = [{ campaign_id: '__category_match_bypass__', similarity: relevance }];
             console.log(`  ⚠ Category match bypassed (TREND_DISABLE_CATEGORY_MATCH=true)`);
         } else {
-            matchedCampaigns = await this.findMatchingCampaigns(trend, relevance);
+            matchedCampaigns = await this.findMatchingCampaigns(trend, relevance, embedding);
             if (matchedCampaigns.length === 0) {
                 console.log(`  ✗ No matching campaigns found`);
                 return null;
@@ -121,19 +132,19 @@ class FilteringEngine {
                 input: `${trend.query}. Related: ${trend.related_queries.join(', ')}`
             });
 
-            const vector = trendEmbedding.data[0].embedding;
+            const embedding = trendEmbedding.data[0].embedding;
 
             // Find most similar campaign
             const result = await this.pool.query(`
         SELECT MAX(1 - (embedding <=> $1::vector)) as max_similarity
         FROM campaign_embeddings
-      `, [JSON.stringify(vector)]);
+      `, [JSON.stringify(embedding)]);
 
             const similarity = result.rows[0]?.max_similarity || 0;
-            return Math.max(0, Math.min(1, similarity)); // Clamp to [0, 1]
+            return { relevance: Math.max(0, Math.min(1, similarity)), embedding };
         } catch (err) {
             console.error(`[Filter] Relevance calculation failed: ${err.message}`);
-            return 0; // Fail the filter if embedding generation fails
+            return { relevance: 0, embedding: null };
         }
     }
 
@@ -141,7 +152,7 @@ class FilteringEngine {
      * Layer 4: Category Matching
      * Find campaigns that match the trend's inferred category
      */
-    async findMatchingCampaigns(trend, relevance) {
+    async findMatchingCampaigns(trend, relevance, embedding) {
         try {
             // Infer category from query
             const category = this.inferCategory(trend.query);
@@ -153,21 +164,29 @@ class FilteringEngine {
             const matchedCategories = this.CATEGORY_MATCHES[category];
             const categoryThreshold = this.CATEGORY_SIMILARITY_THRESHOLD;
 
-            const result = await this.pool.query(`
-        SELECT campaign_id, content, 1 - (ce.embedding <=> te.embedding) as similarity
-        FROM campaign_embeddings ce
-        CROSS JOIN (
-          SELECT $1::vector as embedding
-        ) te
-        WHERE ce.content ILIKE ANY($2)
-        ORDER BY similarity DESC
-        LIMIT 10
-      `, [
-                `[0.1, 0.2, 0.3]`, // Placeholder - would be actual trend embedding
-                matchedCategories.map(c => `%${c}%`)
-            ]);
-
-            return result.rows.filter(r => r.similarity >= categoryThreshold);
+            // Use actual trend embedding if available, otherwise fall back to category text match only
+            if (embedding) {
+                const result = await this.pool.query(`
+          SELECT campaign_id, content, 1 - (ce.embedding <=> $1::vector) as similarity
+          FROM campaign_embeddings ce
+          WHERE ce.content ILIKE ANY($2)
+          ORDER BY similarity DESC
+          LIMIT 10
+        `, [
+                    JSON.stringify(embedding),
+                    matchedCategories.map(c => `%${c}%`)
+                ]);
+                return result.rows.filter(r => r.similarity >= categoryThreshold);
+            } else {
+                // No embedding: just return category-matched campaigns without similarity ranking
+                const result = await this.pool.query(`
+          SELECT campaign_id, content, 0.65 as similarity
+          FROM campaign_embeddings
+          WHERE content ILIKE ANY($1)
+          LIMIT 10
+        `, [matchedCategories.map(c => `%${c}%`)]);
+                return result.rows;
+            }
         } catch (err) {
             console.error(`[Filter] Category matching failed: ${err.message}`);
             return [];
@@ -225,14 +244,20 @@ class FilteringEngine {
     inferCategory(query) {
         const lowerQuery = query.toLowerCase();
 
-        // Simple keyword-based inference
+        // Check Turkish keywords first (longer keyword lists, more specific)
+        for (const [category, keywords] of Object.entries(this.TR_CATEGORY_KEYWORDS)) {
+            if (keywords.some(kw => lowerQuery.includes(kw))) {
+                return category;
+            }
+        }
+
+        // Then English category keywords
         for (const [category, keywords] of Object.entries(this.CATEGORY_MATCHES)) {
             if (keywords.some(kw => lowerQuery.includes(kw))) {
                 return category;
             }
         }
 
-        // Fallback: try to use OpenAI if possible
         return null;
     }
 }
