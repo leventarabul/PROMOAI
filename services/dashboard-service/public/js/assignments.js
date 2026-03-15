@@ -32,7 +32,8 @@ async function runAssignment() {
 
         for (const customer of customers) {
             const segment = (customer.segment || 'silver').toLowerCase();
-            const interests = customer.preferences?.interests?.join(', ') || customer.favorite_categories?.join(', ') || '-';
+            const prefs = customer.preferences || {};
+            const interests = (prefs.interests && prefs.interests.join(', ')) || (customer.favorite_categories && customer.favorite_categories.join(', ')) || '-';
             const card = document.createElement('div');
             card.className = 'customer-card';
             card.id = `ccard-${customer.customer_id}`;
@@ -56,7 +57,7 @@ async function runAssignment() {
 
         await animateStep('aStep1', 0);
         const ctxData = await api('/api/contexts/active');
-        const ctxCount = ctxData.contexts?.length || 0;
+        const ctxCount = (ctxData.contexts && ctxData.contexts.length) || 0;
         completeStep('aStep1', `${ctxCount} context`);
 
         await sleep(300);

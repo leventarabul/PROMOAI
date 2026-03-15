@@ -52,6 +52,11 @@
         <span class="tab-label">Atama Sonuçları</span>
         <span class="tab-desc">Kime Ne, Neden?</span>
     </button>
+        <button class="tab" data-tab="behavior">
+        <span class="tab-icon">👤</span>
+        <span class="tab-label">Müşteri Profil</span>
+        <span class="tab-desc">Event → Davranış Özeti</span>
+    </button>
     </nav>
 
     <!-- ═══════════════ Main Content ═══════════════ -->
@@ -206,6 +211,51 @@
             <div class="results-container" id="resultsContainer"></div>
         </section>
 
+        <!-- ────── Tab 5: Behavior Aggregation ────── -->
+        <section class="tab-content" id="tab-behavior">
+            <div class="action-bar">
+                <button class="btn-primary" id="btnAggregate">
+                <span class="btn-icon">👤</span>
+                Profilleri Güncelle
+            </button>
+                <div class="action-info" id="behaviorTimer"></div>
+            </div>
+
+            <!-- Pipeline Steps -->
+            <div class="assign-pipeline" id="behaviorPipeline">
+                <div class="assign-step" id="bStep1">
+                    <div class="assign-step-icon">📥</div>
+                    <div class="assign-step-label">Veri Toplama</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="bStep2">
+                    <div class="assign-step-icon">🧮</div>
+                    <div class="assign-step-label">Hesaplama</div>
+                    <div class="assign-step-status"></div>
+                </div>
+                <div class="assign-connector"></div>
+                <div class="assign-step" id="bStep3">
+                    <div class="assign-step-icon">💾</div>
+                    <div class="assign-step-label">Kaydetme</div>
+                    <div class="assign-step-status"></div>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div class="behavior-stats hidden" id="behaviorStatsPanel">
+                <div class="stat-card" id="statEvents"></div>
+                <div class="stat-card" id="statCustomers"></div>
+                <div class="stat-card" id="statDateRange"></div>
+            </div>
+
+            <!-- Customer Results Grid -->
+            <div class="behavior-grid hidden" id="behaviorGrid"></div>
+
+            <!-- Summary -->
+            <div class="result-summary hidden" id="behaviorSummary"></div>
+        </section>
+
     </main>
 
     <footer>
@@ -217,6 +267,7 @@
     <script src="/js/vectors.js"></script>
     <script src="/js/assignments.js"></script>
     <script src="/js/results.js"></script>
+    <script src="/js/behavior.js"></script>
 </body>
 
 </html>

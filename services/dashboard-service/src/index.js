@@ -22,6 +22,7 @@ const pool = new pg.Pool({
 const TREND_URL = process.env.TREND_SERVICE_URL || 'http://localhost:3006';
 const CONTEXT_URL = process.env.CONTEXT_SERVICE_URL || 'http://localhost:3005';
 const ASSIGNMENT_URL = process.env.ASSIGNMENT_SERVICE_URL || 'http://localhost:3004';
+const BEHAVIOR_URL = process.env.BEHAVIOR_SERVICE_URL || 'http://localhost:3008';
 
 // ─────────────────────── Proxy Routes ───────────────────────
 
@@ -55,6 +56,40 @@ app.post('/api/assignments/run', async(req, res) => {
         });
         res.json(await r.json());
     } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+// ─────────────────────── Behavior Aggregation ───────────────────────
+
+app.post('/api/behavior/aggregate', async(_req, res) => {
+    try {
+        const r = await fetch(`${BEHAVIOR_URL}/aggregate/run`, { method: 'POST' });
+        res.json(await r.json());
+    } catch (e) { res.status(502).json({ error: e.message }); }
+});
+
+app.get('/api/behavior/stats', async(_req, res) => {
+    try {
+        const [behaviorR, eventR, customerR] = await Promise.all([
+            pool.query(`
+                SELECT customer_id, total_events, total_spend, avg_order_value,
+                       favorite_categories, last_purchase_date, purchase_frequency, updated_at
+                FROM customer_behavior_summary
+                ORDER BY customer_id`),
+            pool.query(`
+                SELECT COUNT(*) AS total_events, COUNT(DISTINCT user_id) AS unique_users,
+                       MIN(timestamp) AS earliest, MAX(timestamp) AS latest
+                FROM events`),
+            pool.query(`
+                SELECT cp.customer_id, cp.segment, cp.age_range, cp.location
+                FROM customer_profiles cp WHERE cp.is_active = TRUE
+                ORDER BY cp.customer_id`),
+        ]);
+        res.json({
+            customers: behaviorR.rows,
+            events: eventR.rows[0],
+            profiles: customerR.rows,
+        });
+    } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─────────────────────── DB Query Routes ───────────────────────
@@ -153,9 +188,11 @@ app.get('/api/embeddings/scatter', async(_req, res) => {
         }
 
         const coords = pcaProject(vectors, 3);
-        coords.forEach((c, i) => { points[i].x = c[0];
+        coords.forEach((c, i) => {
+            points[i].x = c[0];
             points[i].y = c[1];
-            points[i].z = c[2]; });
+            points[i].z = c[2];
+        });
 
         res.json({
             points,
@@ -255,7 +292,8 @@ pool.query('SELECT 1').then(() => {
         console.log(`   http://localhost:${PORT}`);
         console.log(`   Trend Service:      ${TREND_URL}`);
         console.log(`   Context Service:    ${CONTEXT_URL}`);
-        console.log(`   Assignment Service: ${ASSIGNMENT_URL}\n`);
+        console.log(`   Assignment Service: ${ASSIGNMENT_URL}`);
+        console.log(`   Behavior Service:   ${BEHAVIOR_URL}\n`);
     });
 }).catch(err => {
     console.error('DB connection failed:', err.message);

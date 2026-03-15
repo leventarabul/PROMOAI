@@ -121,7 +121,7 @@ async function runTrendDetection() {
         const ctxContainer = document.getElementById('trendContexts');
         ctxContainer.innerHTML = '';
 
-        const contexts = data.details?.contexts || [];
+        const contexts = (data.details && data.details.contexts) || [];
         for (const ctx of contexts) {
             const card = document.createElement('div');
             card.className = 'context-card';
@@ -131,7 +131,7 @@ async function runTrendDetection() {
                 <div class="ctx-meta">📊 ${(meta.estimated_volume || 0).toLocaleString()} arama | 📈 %${meta.trend_growth_percent || 0} büyüme</div>
                 <div class="ctx-meta">🎯 Güven: ${((meta.confidence_score || 0) * 100).toFixed(0)}% | Benzerlik: ${((meta.relevance_score || 0) * 100).toFixed(0)}%</div>
                 <div class="ctx-meta">⏰ TTL: ${ctx.ttl_hours || 0}h | Kaynak: ${meta.trend_query ? 'RSS+NLP' : 'manual'}</div>
-                <div class="ctx-meta">🏷️ Eşleşen kampanya: ${meta.associated_campaigns?.map(c => c.campaign_id).join(', ') || '-'}</div>
+                <div class="ctx-meta">🏷️ Eşleşen kampanya: ${(meta.associated_campaigns && meta.associated_campaigns.map(function(c) { return c.campaign_id; }).join(', ')) || '-'}</div>
                 <div class="ctx-tags">
                     ${(ctx.tags || []).map(tag => `<span class="ctx-tag">${tag}</span>`).join('')}
                 </div>`;

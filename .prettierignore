@@ -1,0 +1,16 @@
+# Bağımlılıklar
+**/node_modules/**
+
+# Build çıktıları
+**/dist/**
+**/build/**
+
+# Frontend public JS — Manuel yazılmış, format bozulmasın
+services/dashboard-service/public/js/*.js
+
+# SQL ve şema dosyaları
+infra/db/**/*.sql
+
+# Ortam dosyaları
+.env
+.env.*

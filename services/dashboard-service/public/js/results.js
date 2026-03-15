@@ -45,9 +45,8 @@ async function loadResults() {
         for (const [uid, group] of Object.entries(groups)) {
             const segment = (group.customer.segment || 'silver').toLowerCase();
             const segmentColor = SEGMENT_COLORS[segment] || SEGMENT_COLORS.standard;
-            const interests = group.customer.preferences?.interests?.join(', ') ||
-                group.customer.preferences?.favorite_categories?.join(', ') ||
-                '-';
+            var _gprefs = group.customer.preferences || {};
+            const interests = (_gprefs.interests && _gprefs.interests.join(', ')) || (_gprefs.favorite_categories && _gprefs.favorite_categories.join(', ')) || '-';
 
             const groupEl = document.createElement('div');
             groupEl.className = 'result-group';
@@ -81,11 +80,11 @@ function renderAssignment(assignment) {
     const category = (assignment.category || 'other').toLowerCase();
     const icon = CATEGORY_ICONS[category] || '🎁';
     const categoryClass = category.replace(/[^a-z]/g, '');
-    const reward = assignment.reward_type === 'cashback'
-        ? `💰 %${assignment.reward_value} Cashback`
-        : assignment.reward_type === 'points'
-            ? `⭐ ${assignment.reward_value}x Puan`
-            : `🎁 ${assignment.reward_value}`;
+    const reward = assignment.reward_type === 'cashback' ?
+        `💰 %${assignment.reward_value} Cashback` :
+        assignment.reward_type === 'points' ?
+        `⭐ ${assignment.reward_value}x Puan` :
+        `🎁 ${assignment.reward_value}`;
 
     const reason = assignment.reason || assignment.assignment_reason || 'Sebep belirtilmemiş';
     const date = assignment.created_at ? new Date(assignment.created_at).toLocaleString('tr-TR') : '';

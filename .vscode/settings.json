@@ -1,0 +1,23 @@
+{
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "prettier.requireConfig": true,
+    "prettier.ignorePath": ".prettierignore",
+    "files.eol": "\n",
+    "files.associations": {
+        "services/dashboard-service/public/js/*.js": "javascript"
+    },
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "never"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    }
+}

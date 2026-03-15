@@ -78,6 +78,27 @@ services:
       - promoai-network
     restart: unless-stopped
 
+  behavior-aggregator:
+    build:
+      context: ./services/behavior-aggregator
+      dockerfile: Dockerfile
+    container_name: promoai-behavior-aggregator
+    environment:
+      POSTGRES_USER: promoai
+      POSTGRES_PASSWORD: promoai
+      POSTGRES_DB: campaign
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      BEHAVIOR_AGGREGATOR_PORT: 3008
+      BEHAVIOR_AGGREGATOR_CRON: "0 1 * * *"
+    ports:
+      - "3008:3008"
+    depends_on:
+      - postgres
+    networks:
+      - promoai-network
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

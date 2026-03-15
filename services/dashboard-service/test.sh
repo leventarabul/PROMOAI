@@ -32,5 +32,13 @@ echo -n "7. GET /api/embeddings/scatter "
 CODE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "$BASE/api/embeddings/scatter")
 if [ "$CODE" = "200" ]; then echo "✅ $CODE"; else echo "❌ $CODE"; fi
 
+echo -n "8. GET /api/behavior/stats "
+CODE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "$BASE/api/behavior/stats")
+if [ "$CODE" = "200" ]; then echo "✅ $CODE"; else echo "❌ $CODE"; fi
+
+echo -n "9. POST /api/behavior/aggregate "
+CODE=$(curl -s -m 15 -o /dev/null -w "%{http_code}" -X POST "$BASE/api/behavior/aggregate")
+if [ "$CODE" = "200" ]; then echo "✅ $CODE"; else echo "❌ $CODE"; fi
+
 echo ""
 echo "=== Done ==="
